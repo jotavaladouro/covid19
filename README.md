@@ -7,4 +7,4 @@ I used data from hospitalized people because the data from detected cases  depen
 
 ![Galician](./VariationGalician.png)
 
-![Galician](./desglose.png)
+![Galician](./VariationByCommunity.png)

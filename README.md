@@ -3,4 +3,10 @@ In this notebook, I try to analyze data from covid19 in Spain. I examine the var
 
 I used data from hospitalized people because the data from detected cases  depend on the number of tests, and the number of dead people is 15 days late concerning infections
 
-![Image of Yaktocat](https://octodex.github.com/images/yaktocat.png)
+
+![Spain](./VariationSpain.png)
+
+![Galician](./VariationGalician.png)
+
+![Comunity](./VariationByCommunity.png)
+

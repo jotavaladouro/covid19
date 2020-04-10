@@ -3,10 +3,14 @@ In this notebook, I try to analyze data from covid19 in Spain. I examine the var
 
 I used data from hospitalized people because the data from detected cases  depend on the number of tests, and the number of dead people is 15 days late concerning infections
 
+A Google Cloud Function has been developed to automatize the process.
 
-![Spain](./VariationSpain.png)
+You can see the data update daily in https://storage.googleapis.com/covid19-jota/index.html 
 
-![Galician](./VariationGalician.png)
 
-![Comunity](./VariationByCommunity.png)
+![Spain](./Variation_sp.png)
+
+![Galician](./Variation_ga.png)
+
+![Comunity](./Variation_ca.png)
 

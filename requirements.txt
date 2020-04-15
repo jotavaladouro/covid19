@@ -3,3 +3,5 @@ pandas
 matplotlib
 pycountry
 google-cloud-storage
+
+typing

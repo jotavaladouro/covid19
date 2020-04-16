@@ -4,7 +4,8 @@ I examine the variation of people hospitalized by covid19.
 We use data from the Spanish government download from 
 [here](https://covid19.isciii.es/resources/serie_historica_acumulados.csv)
 
-I used data from hospitalized people because the data from detected cases  depend on the number of tests, and the number of dead people is 15 days late concerning infections
+I used data from hospitalized people because the data from detected cases  depend on the number of tests, 
+and the number of deaths can vary according to the criteria used.
 
 ## Files
 * Coronavirus.ipynb .- Jupyter notebook

@@ -45,6 +45,12 @@ FILES_COPY = [FILE_CSV,
 
 LABEL_INIT_CONFINEMENT = 'Confinement'
 LABEL_INIT_HARD_CONFINEMENT = 'Hard Confinement'
+DATE_INIT_CONFINEMENT = dt.datetime(2020,3, 14)
+DATE_INIT_HARD_CONFINEMENT = dt.datetime(2020,3, 30)
+
+SPECIAL_DATES = [{"date":dt.datetime(2020,3, 14), "label":'Soft Confinement', "color": "orange" },
+                 {"date":dt.datetime(2020,3, 30), "label":'Hard Confinement', "color": "r" },
+                 {"date":dt.datetime(2020,4, 13), "label":'Soft Confinement', "color": "orange" }]
 
 
 def get_tmp_path(file: str) -> str:
@@ -141,6 +147,13 @@ def get_hospitalized_by_population(df: pd.DataFrame, df_ca: pd.DataFrame) -> (pd
     return df_ca_hospitalized_population, hospitalized_population_sp
 
 
+
+def plot_special_dates(ax, list_dates: list) -> None:
+    for special_date in list_dates:
+        ax.axvline(special_date["date"],
+                    color=special_date["color"],
+                   label=special_date["label"])
+
 def plot(dates: List,
          value: List,
          title: str = "",
@@ -157,12 +170,7 @@ def plot(dates: List,
     ax.set_title(title)
     ax.plot(dates, value)
     fig.autofmt_xdate()
-    plt.axvline(DATE_INIT_CONFINEMENT,
-                color='r',
-                label=LABEL_INIT_CONFINEMENT)
-    plt.axvline(DATE_INIT_HARD_CONFINEMENT,
-                color='orange',
-                label=LABEL_INIT_HARD_CONFINEMENT)
+    plot_special_dates(ax, SPECIAL_DATES)
     plt.legend()
     if file_to_save is not None:
         fig.savefig(file_to_save)
@@ -204,8 +212,7 @@ def plot_by_ca(df: pd.DataFrame,
             values = get_diff_hospitalized_by_day(df_ca)
         else:
             values = df_ca[SZ_COLUMN_HOSPITALIZED]
-        ax[column, row].axvline(DATE_INIT_CONFINEMENT, color='r')
-        ax[column, row].axvline(DATE_INIT_HARD_CONFINEMENT, color='orange')
+        plot_special_dates(ax[column, row], SPECIAL_DATES)
         ax[column, row].set_title(ca_get_name(ca)[:15])
         ax[column, row].plot(df_ca["Date"], values)
     plt.subplots_adjust(hspace=0.5)
@@ -248,7 +255,8 @@ def plot_quadrants(x: pd.DataFrame,
                    x_description: str =None,
                    y_description: str =None,
                    file_to_save: str = None,
-                   y_center: int = 0) -> None:
+                   y_center: int = 0,
+                   text_show: str = None) -> None:
     df_all = pd.merge(x,
                       y,
                       left_on=column_merge,
@@ -262,7 +270,9 @@ def plot_quadrants(x: pd.DataFrame,
                      [row[column_x], row[column_y]])
     ax.set_ylabel(y_description)
     ax.set_xlabel(x_description)
-    ax.xaxis.set_label_coords(0.7, 0.5)
+    ax.xaxis.set_label_coords(0.9, 0.42)
+    if text_show is not None:
+        ax.text(50, 0.8, text_show,bbox=dict(facecolor='red', alpha=0.5))
     if title is not None:
         ax.set_title(title)
     if file_to_save is not None:
@@ -284,22 +294,21 @@ def copy_to_local(lst_files: List) -> None:
 
 def do_calc_temp() -> str:
     df_general, df_ga, df_es = get_data(URL_FILE_CSV, get_tmp_path(FILE_CSV))
-    print(df_general.head())
     df_ca = load_ca_population_from_gs(BUCKET, FILE_CSV_CA_POPULATION)
-    print(df_general.head())
     df_diff, diff_percent_sp = get_diff_hospitalized(df_general, 7)
-    print(df_diff, diff_percent_sp)
     (df_hospitalized_by_population,
      hospitalized_by_population_sp) = get_hospitalized_by_population(df_general, df_ca)
-    print(df_hospitalized_by_population, hospitalized_by_population_sp)
 
     plot(df_ga["Date"],
          df_ga[SZ_COLUMN_HOSPITALIZED],
-         title="Hospitalized Galician",
+         title="Hospitalized Galician From {0} to {1}".format(
+                                    df_general["Date"].min().date(),
+                                    df_general["Date"].max().date()),
          file_to_save=get_tmp_path(FILE_HOSPITALIZED_GA))
     plot(df_es["Date"],
          df_es[SZ_COLUMN_HOSPITALIZED],
-         title="Hospitalized Spain",
+         title="Hospitalized Spain From {0} to {1}".format(df_general["Date"].min().date(),
+                                    df_general["Date"].max().date()),
          file_to_save=get_tmp_path(FILE_HOSPITALIZED_SP))
     plot(df_es["Date"],
          get_diff_hospitalized_by_day(df_es),
@@ -339,7 +348,8 @@ def do_calc_temp() -> str:
                    file_to_save=get_tmp_path(FILE_QUADRANTS_CA),
                    x_description="variation",
                    y_description="hospitalizad",
-                   y_center=hospitalized_by_population_sp)
+                   y_center=hospitalized_by_population_sp,
+                   text_show= "x axel in spain mean")
     return "From {0} to {1}".format(df_general["Date"].min().date(),
                                     df_general["Date"].max().date())
 

@@ -103,7 +103,8 @@ def load_ca_population_from_gs(bucket_name: str, file: str) -> pd.DataFrame:
 
 
 def get_diff_hospitalized_by_day(df: pd.DataFrame) -> List:
-    return df[SZ_COLUMN_HOSPITALIZED] - df[SZ_COLUMN_HOSPITALIZED].shift(1)
+    lst = df[SZ_COLUMN_HOSPITALIZED] - df[SZ_COLUMN_HOSPITALIZED].shift(1)
+    return lst
 
 
 def get_diff_hospitalized(df: pd.DataFrame, days_diff: int) -> (pd.DataFrame, float):
@@ -160,6 +161,7 @@ def plot(dates: List,
          file_to_save: str = None) -> None:
     """
     Plot a graph
+    :param legend:
     :param dates: x values
     :param value: y value
     :param title:
@@ -174,6 +176,7 @@ def plot(dates: List,
     plt.legend()
     if file_to_save is not None:
         fig.savefig(file_to_save)
+
 
 
 def ca_get_name(code: str) -> str:
@@ -291,32 +294,46 @@ def copy_to_local(lst_files: List) -> None:
     for file in lst_files:
         copyfile(get_tmp_path(file), "./{0}".format(file))
 
+def last_value_to_str(last_value : tuple) -> str:
+    return "{0} - {1}".format(last_value[0], last_value[1])
 
 def do_calc_temp() -> str:
-    df_general, df_ga, df_es = get_data(URL_FILE_CSV, get_tmp_path(FILE_CSV))
+    df_general, df_ga, df_sp = get_data(URL_FILE_CSV, get_tmp_path(FILE_CSV))
     df_ca = load_ca_population_from_gs(BUCKET, FILE_CSV_CA_POPULATION)
     df_diff, diff_percent_sp = get_diff_hospitalized(df_general, 7)
     (df_hospitalized_by_population,
      hospitalized_by_population_sp) = get_hospitalized_by_population(df_general, df_ca)
+    max_date= df_general["Date"].max()
+
+    last_value_ga = df_ga[df_ga["Date"] == max_date][SZ_COLUMN_HOSPITALIZED].values[0]
+    last_value_sp = df_sp[df_sp["Date"] == max_date][SZ_COLUMN_HOSPITALIZED].values[0]
+
+
+
+    print(last_value_ga)
 
     plot(df_ga["Date"],
          df_ga[SZ_COLUMN_HOSPITALIZED],
-         title="Hospitalized Galician From {0} to {1}".format(
+         title="Hospitalized Galician From {0} to {1}. Last {2} ".format(
                                     df_general["Date"].min().date(),
-                                    df_general["Date"].max().date()),
+                                    df_general["Date"].max().date(),
+                                    last_value_ga),
          file_to_save=get_tmp_path(FILE_HOSPITALIZED_GA))
-    plot(df_es["Date"],
-         df_es[SZ_COLUMN_HOSPITALIZED],
-         title="Hospitalized Spain From {0} to {1}".format(df_general["Date"].min().date(),
-                                    df_general["Date"].max().date()),
+    plot(df_sp["Date"],
+         df_sp[SZ_COLUMN_HOSPITALIZED],
+         title="Hospitalized Spain From {0} to {1}. Last {2}".format(df_general["Date"].min().date(),
+                                    df_general["Date"].max().date(),
+                                    last_value_sp),
          file_to_save=get_tmp_path(FILE_HOSPITALIZED_SP))
-    plot(df_es["Date"],
-         get_diff_hospitalized_by_day(df_es),
-         title="Variation hospitalized by covid19 Spain",
+    diff_sp_day =  get_diff_hospitalized_by_day(df_sp)
+    plot(df_sp["Date"],
+         diff_sp_day,
+         title="Variation hospitalized by covid19 Spain.Last  {0}".format(diff_sp_day.iloc[-1]),
          file_to_save=get_tmp_path(FILE_VARIATION_SP))
+    diff_ga_day = get_diff_hospitalized_by_day(df_ga)
     plot(df_ga["Date"],
-         get_diff_hospitalized_by_day(df_ga),
-         title="Variation hospitalized by covid19 Galician",
+         diff_ga_day,
+         title="Variation hospitalized by covid19 Galician.Last  {0}".format(diff_ga_day.iloc[-1]),
          file_to_save=get_tmp_path(FILE_VARIATION_GA))
     plot_by_ca(df_general,
                plot_diff=True,
@@ -350,7 +367,7 @@ def do_calc_temp() -> str:
                    y_description="hospitalizad",
                    y_center=hospitalized_by_population_sp,
                    text_show= "x axel in spain mean")
-    return "From {0} to {1}".format(df_general["Date"].min().date(),
+    return "From {0} to {1}".format(max_date.date(),
                                     df_general["Date"].max().date())
 
 

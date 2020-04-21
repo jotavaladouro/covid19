@@ -274,8 +274,11 @@ def plot_quadrants(x: pd.DataFrame,
     ax.set_ylabel(y_description)
     ax.set_xlabel(x_description)
     ax.xaxis.set_label_coords(0.9, 0.42)
+    print(x[column_x].min())
     if text_show is not None:
-        ax.text(50, 0.8, text_show,bbox=dict(facecolor='red', alpha=0.5))
+        ax.text(x[column_x].min(),
+                0,
+                text_show,bbox=dict(facecolor='red', alpha=0.5))
     if title is not None:
         ax.set_title(title)
     if file_to_save is not None:
@@ -361,12 +364,12 @@ def do_calc_temp() -> str:
                    "Diff_percent",
                    "Relation",
                    "CCAA",
-                   title="CCAA comparation. % Variation hospilized last week vs Hospitalized by 10000",
+                   title="CCAA comparation. x= % Variation hospilized last week vs y= Hospitalized by 10000",
                    file_to_save=get_tmp_path(FILE_QUADRANTS_CA),
                    x_description="variation",
                    y_description="hospitalizad",
                    y_center=hospitalized_by_population_sp,
-                   text_show= "x axel in spain mean")
+                   text_show= "x axel in y spain mean")
     return "From {0} to {1}".format(max_date.date(),
                                     df_general["Date"].max().date())
 

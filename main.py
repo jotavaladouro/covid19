@@ -26,10 +26,9 @@ FILE_HOSPITALIZED_SP = "Hospitalized_sp.png"
 FILE_HOSPITALIZED_BY_CA = "Hospitalized_ca.png"
 FILE_HOSPITALIZED_BY_POPULATION = "Hospitalized_by_population.png"
 FILE_QUADRANTS_CA ="Quadrants_ca.png"
-FILE_VARIATION_GA = "Variation_ga.png"
-FILE_VARIATION_SP =  "Variation_sp.png"
-FILE_VARIATION_BY_CA =  "Variation_ca.png"
-FILE_VARIATION_WEEKLY = "Variation_weekly.png"
+FILE_VARIATION_GA = "Daily_ga.png"
+FILE_VARIATION_SP =  "Daily_sp.png"
+FILE_VARIATION_BY_CA =  "Daily_ca.png"
 DATE_INIT_CONFINEMENT = dt.datetime(2020,3, 14)
 DATE_INIT_HARD_CONFINEMENT = dt.datetime(2020,3, 30)
 FILES_COPY = [FILE_CSV,
@@ -39,9 +38,8 @@ FILES_COPY = [FILE_CSV,
               FILE_VARIATION_SP,
               FILE_VARIATION_BY_CA,
               FILE_HOSPITALIZED_BY_CA,
-              FILE_HOSPITALIZED_BY_POPULATION,
-              FILE_VARIATION_WEEKLY,
-              FILE_QUADRANTS_CA]
+              FILE_HOSPITALIZED_BY_POPULATION]
+
 
 LABEL_INIT_CONFINEMENT = 'Confinement'
 LABEL_INIT_HARD_CONFINEMENT = 'Hard Confinement'
@@ -51,6 +49,7 @@ DATE_INIT_HARD_CONFINEMENT = dt.datetime(2020,3, 30)
 SPECIAL_DATES = [{"date":dt.datetime(2020,3, 14), "label":'Soft Confinement', "color": "orange" },
                  {"date":dt.datetime(2020,3, 30), "label":'Hard Confinement', "color": "r" },
                  {"date":dt.datetime(2020,4, 13), "label":'Soft Confinement', "color": "orange" }]
+CA_WITHOUT_VALID_INFORMATION = ["MD"]
 
 
 def get_tmp_path(file: str) -> str:
@@ -80,6 +79,7 @@ def get_data(url_file_csv: str,
                           engine='python')
     ldf = df_read[COLUMNS_USE].copy()
     ldf["Date"] = pd.to_datetime(ldf[SZ_COLUMN_DATE], format='%d/%m/%Y')
+    ldf=ldf[~ldf[SZ_COLUMN_CA].isin(CA_WITHOUT_VALID_INFORMATION )]
     ldf[SZ_COLUMN_HOSPITALIZED] = ldf[SZ_COLUMN_HOSPITALIZED].fillna(0)
     ldf = ldf.dropna()
     ldf_ga = ldf[ldf[SZ_COLUMN_CA] == "GA"]
@@ -107,29 +107,6 @@ def get_diff_hospitalized_by_day(df: pd.DataFrame) -> List:
     return lst
 
 
-def get_diff_hospitalized(df: pd.DataFrame, days_diff: int) -> (pd.DataFrame, float):
-    max_date = df["Date"].max()
-    date_ago = max_date - dt.timedelta(days=days_diff)
-    df_last = df[df["Date"] == max_date][
-        ["Date", "Hospitalizados", "CCAA"]]
-    df_last_week = df[df["Date"] == date_ago][
-        ["Date", "Hospitalizados", "CCAA"]]
-    df_last_week = df_last_week.rename(columns={"Hospitalizados": "Hospitalizados_last_week"})
-    df_diff = pd.merge(df_last[["Hospitalizados", "CCAA"]],
-                       df_last_week[["Hospitalizados_last_week", "CCAA"]],
-                       left_on='CCAA',
-                       right_on='CCAA')
-    df_diff["Diff"] = (df_diff["Hospitalizados"] -
-                       df_diff["Hospitalizados_last_week"])
-    df_diff["Diff_percent"] = (df_diff["Diff"] * 100 /
-                               df_diff["Hospitalizados_last_week"])
-    df_diff["Name"] = df_diff["CCAA"].apply(ca_get_name)
-    diff_sp = (df_diff["Hospitalizados"].sum() -
-               df_diff["Hospitalizados_last_week"].sum())
-    diff_percent_sp = diff_sp * 100 / df_diff["Hospitalizados_last_week"].sum()
-    return df_diff, diff_percent_sp
-
-
 def get_hospitalized_by_population(df: pd.DataFrame, df_ca: pd.DataFrame) -> (pd.DataFrame,
                                                                               float):
     max_date = df["Date"].max()
@@ -146,7 +123,6 @@ def get_hospitalized_by_population(df: pd.DataFrame, df_ca: pd.DataFrame) -> (pd
     df_ca_hospitalized_population["Relation_with_sp"] = (df_ca_hospitalized_population["Relation"] -
                                                          hospitalized_population_sp)
     return df_ca_hospitalized_population, hospitalized_population_sp
-
 
 
 def plot_special_dates(ax, list_dates: list) -> None:
@@ -303,7 +279,6 @@ def last_value_to_str(last_value : tuple) -> str:
 def do_calc_temp() -> str:
     df_general, df_ga, df_sp = get_data(URL_FILE_CSV, get_tmp_path(FILE_CSV))
     df_ca = load_ca_population_from_gs(BUCKET, FILE_CSV_CA_POPULATION)
-    df_diff, diff_percent_sp = get_diff_hospitalized(df_general, 7)
     (df_hospitalized_by_population,
      hospitalized_by_population_sp) = get_hospitalized_by_population(df_general, df_ca)
     max_date= df_general["Date"].max()
@@ -317,47 +292,42 @@ def do_calc_temp() -> str:
 
     plot(df_ga["Date"],
          df_ga[SZ_COLUMN_HOSPITALIZED],
-         title="Hospitalized Galician From {0} to {1}. Last {2} ".format(
+         title="Accumulated Hospitalized Galician From {0} to {1}. Last {2} ".format(
                                     df_general["Date"].min().date(),
                                     df_general["Date"].max().date(),
                                     last_value_ga),
          file_to_save=get_tmp_path(FILE_HOSPITALIZED_GA))
     plot(df_sp["Date"],
          df_sp[SZ_COLUMN_HOSPITALIZED],
-         title="Hospitalized Spain From {0} to {1}. Last {2}".format(df_general["Date"].min().date(),
+         title="Accumulated Hospitalized Spain From {0} to {1}. Last {2}".format(df_general["Date"].min().date(),
                                     df_general["Date"].max().date(),
                                     last_value_sp),
          file_to_save=get_tmp_path(FILE_HOSPITALIZED_SP))
     diff_sp_day =  get_diff_hospitalized_by_day(df_sp)
     plot(df_sp["Date"],
          diff_sp_day,
-         title="Variation hospitalized by covid19 Spain.Last  {0}".format(diff_sp_day.iloc[-1]),
+         title="Daily hospitalized by covid19 Spain.Last  {0}".format(diff_sp_day.iloc[-1]),
          file_to_save=get_tmp_path(FILE_VARIATION_SP))
     diff_ga_day = get_diff_hospitalized_by_day(df_ga)
     plot(df_ga["Date"],
          diff_ga_day,
-         title="Variation hospitalized by covid19 Galician.Last  {0}".format(diff_ga_day.iloc[-1]),
+         title="Daily hospitalized by covid19 Galician.Last  {0}".format(diff_ga_day.iloc[-1]),
          file_to_save=get_tmp_path(FILE_VARIATION_GA))
     plot_by_ca(df_general,
                plot_diff=True,
                file_to_save=get_tmp_path(FILE_VARIATION_BY_CA),
-               title="Variation by CA")
+               title="Daily by CA")
     plot_by_ca(df_general,
                plot_diff=False,
                file_to_save=get_tmp_path(FILE_HOSPITALIZED_BY_CA),
-               title="Hospitalized by CA")
+               title="Accumulated by CA")
     plot_bars(df_hospitalized_by_population['Name'],
               df_hospitalized_by_population['Relation'],
               hospitalized_by_population_sp,
               legend_mean="Mean spain",
-              title="Hostipalized by 10000 persons",
+              title="Accumulated Hostipalized by 10000 persons",
               file_to_save=get_tmp_path(FILE_HOSPITALIZED_BY_POPULATION))
-    plot_bars(df_diff['Name'],
-              df_diff["Diff_percent"],
-              diff_percent_sp,
-              legend_mean="Mean spain",
-              title="Weekly variation hospitalized (%)",
-              file_to_save=get_tmp_path(FILE_VARIATION_WEEKLY))
+    '''
     plot_quadrants(df_diff,
                    df_hospitalized_by_population,
                    'CCAA',
@@ -370,6 +340,7 @@ def do_calc_temp() -> str:
                    y_description="hospitalizad",
                    y_center=hospitalized_by_population_sp,
                    text_show= "x axel in y spain mean")
+    '''
     return "From {0} to {1}".format(max_date.date(),
                                     df_general["Date"].max().date())
 

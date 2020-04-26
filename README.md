@@ -17,11 +17,11 @@ You can see the data update daily in [link](https://storage.googleapis.com/covid
 
 
 
-![Spain](./Variation_sp.png)
+![Spain](./Daily_sp.png)
 
-![Galician](./Variation_ga.png)
+![Galician](./Daily_ga.png)
 
-![Comunity](./Variation_ca.png)
+![Comunity](./Daily_ca.png)
 
 
 ## Google Cloud Funcions + Web Page

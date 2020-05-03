@@ -45,18 +45,31 @@ SPECIAL_DATES = [{"date": dt.datetime(2020, 3, 14), "label": 'Soft Confinement',
                  {"date": dt.datetime(2020, 4, 13), "label": 'Soft Confinement', "color": "orange"},
                  {"date": dt.datetime(2020, 4, 26), "label": 'Child walk', "color": "blue"},
                  {"date": dt.datetime(2020, 5, 2),  "label": 'Walk and sport', "color": "green"}]
-CA_REMOVE = ["ME", "CE"]
+CA_REMOVE = ["ML", "CE"]
 DATA_REMOVE = [{"CA": "MD", "DATE": "2020-04-26"}]
+CA_SPECIAL_CODE = [{"NAME": "Madrid", "CODE": "MD"},
+                   {"NAME": "Cataluña", "CODE": "CT"},
+                   {"NAME": "Rioja", "CODE": "RI"},
+                   {"NAME": "Navarra", "CODE": "NC"}]
+
 
 
 def get_tmp_path(file: str) -> str:
     return "/tmp/{0}".format(file)
 
 
+def get_special_code(description: str) -> Optional[str]:
+    for item in CA_SPECIAL_CODE:
+        if item["NAME"] == description:
+            return item["CODE"]
+    return None
+
+
 def get_code(description: str) -> Optional[str]:
     description_last = description.split()[-1]
-    if description_last == "Cataluña":
-        description_last = "Catalunya"
+    special_code = get_special_code(description_last)
+    if special_code is not None:
+        return special_code
     for st in pycountry.subdivisions:
         if st.country_code == 'ES':
             if description_last in st.name:

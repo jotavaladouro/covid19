@@ -18,19 +18,18 @@ SZ_COLUMN_CA = "CCAA"
 SZ_COLUMN_DATE = "FECHA"
 SZ_COLUMN_HOSPITALIZED = "Hospitalizados"
 
-
 COLUMNS_USE = [SZ_COLUMN_CA, SZ_COLUMN_DATE, SZ_COLUMN_HOSPITALIZED]
 FILE_ENCODING = 'cp1252'
-FILE_HOSPITALIZED_GA =  "Hospitalized_ga.png"
+FILE_HOSPITALIZED_GA = "Hospitalized_ga.png"
 FILE_HOSPITALIZED_SP = "Hospitalized_sp.png"
 FILE_HOSPITALIZED_BY_CA = "Hospitalized_ca.png"
 FILE_HOSPITALIZED_BY_POPULATION = "Hospitalized_by_population.png"
-FILE_QUADRANTS_CA ="Quadrants_ca.png"
+FILE_QUADRANTS_CA = "Quadrants_ca.png"
 FILE_VARIATION_GA = "Daily_ga.png"
-FILE_VARIATION_SP =  "Daily_sp.png"
-FILE_VARIATION_BY_CA =  "Daily_ca.png"
-DATE_INIT_CONFINEMENT = dt.datetime(2020,3, 14)
-DATE_INIT_HARD_CONFINEMENT = dt.datetime(2020,3, 30)
+FILE_VARIATION_SP = "Daily_sp.png"
+FILE_VARIATION_BY_CA = "Daily_ca.png"
+DATE_INIT_CONFINEMENT = dt.datetime(2020, 3, 14)
+DATE_INIT_HARD_CONFINEMENT = dt.datetime(2020, 3, 30)
 FILES_COPY = [FILE_CSV,
               FILE_HOSPITALIZED_GA,
               FILE_HOSPITALIZED_SP,
@@ -41,15 +40,13 @@ FILES_COPY = [FILE_CSV,
               FILE_HOSPITALIZED_BY_POPULATION]
 
 
-LABEL_INIT_CONFINEMENT = 'Confinement'
-LABEL_INIT_HARD_CONFINEMENT = 'Hard Confinement'
-DATE_INIT_CONFINEMENT = dt.datetime(2020,3, 14)
-DATE_INIT_HARD_CONFINEMENT = dt.datetime(2020,3, 30)
-
-SPECIAL_DATES = [{"date":dt.datetime(2020,3, 14), "label":'Soft Confinement', "color": "orange" },
-                 {"date":dt.datetime(2020,3, 30), "label":'Hard Confinement', "color": "r" },
-                 {"date":dt.datetime(2020,4, 13), "label":'Soft Confinement', "color": "orange" }]
-CA_WITHOUT_VALID_INFORMATION = ["MD"]
+SPECIAL_DATES = [{"date": dt.datetime(2020, 3, 14), "label": 'Soft Confinement', "color": "orange"},
+                 {"date": dt.datetime(2020, 3, 30), "label": 'Hard Confinement', "color": "r"},
+                 {"date": dt.datetime(2020, 4, 13), "label": 'Soft Confinement', "color": "orange"},
+                 {"date": dt.datetime(2020, 4, 26), "label": 'Child walk', "color": "blue"},
+                 {"date": dt.datetime(2020, 5, 2),  "label": 'Walk and sport', "color": "green"}]
+CA_REMOVE = ["ME", "CE"]
+DATA_REMOVE = [{"CA": "MD", "DATE": "2020-04-26"}]
 
 
 def get_tmp_path(file: str) -> str:
@@ -79,7 +76,7 @@ def get_data(url_file_csv: str,
                           engine='python')
     ldf = df_read[COLUMNS_USE].copy()
     ldf["Date"] = pd.to_datetime(ldf[SZ_COLUMN_DATE], format='%d/%m/%Y')
-    ldf=ldf[~ldf[SZ_COLUMN_CA].isin(CA_WITHOUT_VALID_INFORMATION )]
+    ldf = ldf[~ldf[SZ_COLUMN_CA].isin(CA_REMOVE)]
     ldf[SZ_COLUMN_HOSPITALIZED] = ldf[SZ_COLUMN_HOSPITALIZED].fillna(0)
     ldf = ldf.dropna()
     ldf_ga = ldf[ldf[SZ_COLUMN_CA] == "GA"]
@@ -102,8 +99,13 @@ def load_ca_population_from_gs(bucket_name: str, file: str) -> pd.DataFrame:
     return df_ca
 
 
-def get_diff_hospitalized_by_day(df: pd.DataFrame) -> List:
+def get_diff_hospitalized_by_day(df: pd.DataFrame,
+                                 filter: bool = False) -> List:
     lst = df[SZ_COLUMN_HOSPITALIZED] - df[SZ_COLUMN_HOSPITALIZED].shift(1)
+    if filter:
+        wrong_values = lst[lst > 20000].values
+        if len(wrong_values) > 0:
+            lst = lst.replace(wrong_values, method='ffill')
     return lst
 
 
@@ -128,8 +130,27 @@ def get_hospitalized_by_population(df: pd.DataFrame, df_ca: pd.DataFrame) -> (pd
 def plot_special_dates(ax, list_dates: list) -> None:
     for special_date in list_dates:
         ax.axvline(special_date["date"],
-                    color=special_date["color"],
+                   color=special_date["color"],
                    label=special_date["label"])
+
+def plot_merda(
+         value: List,
+         title: str = "",
+         file_to_save: str = None) -> None:
+    """
+    Plot a graph
+    :param legend:
+    :param dates: x values
+    :param value: y value
+    :param title:
+    :param file_to_save: Name file to save, None, not save
+    :return:
+    """
+    fig, ax = plt.subplots()
+    ax.set_title(title)
+    ax.plot(value)
+    if file_to_save is not None:
+        fig.savefig(file_to_save)
 
 def plot(dates: List,
          value: List,
@@ -152,7 +173,6 @@ def plot(dates: List,
     plt.legend()
     if file_to_save is not None:
         fig.savefig(file_to_save)
-
 
 
 def ca_get_name(code: str) -> str:
@@ -231,8 +251,8 @@ def plot_quadrants(x: pd.DataFrame,
                    column_y: str,
                    column_name: str,
                    title: str = None,
-                   x_description: str =None,
-                   y_description: str =None,
+                   x_description: str = None,
+                   y_description: str = None,
                    file_to_save: str = None,
                    y_center: int = 0,
                    text_show: str = None) -> None:
@@ -240,7 +260,7 @@ def plot_quadrants(x: pd.DataFrame,
                       y,
                       left_on=column_merge,
                       right_on=column_merge)
-    fig, ax = plt.subplots(figsize=(10,10))
+    fig, ax = plt.subplots(figsize=(10, 10))
     ax.plot(df_all[column_x], df_all[column_y], 'ro')
     ax.spines['left'].set_position('zero')
     ax.spines['bottom'].set_position(('data', y_center))
@@ -254,7 +274,7 @@ def plot_quadrants(x: pd.DataFrame,
     if text_show is not None:
         ax.text(x[column_x].min(),
                 0,
-                text_show,bbox=dict(facecolor='red', alpha=0.5))
+                text_show, bbox=dict(facecolor='red', alpha=0.5))
     if title is not None:
         ax.set_title(title)
     if file_to_save is not None:
@@ -273,37 +293,37 @@ def copy_to_local(lst_files: List) -> None:
     for file in lst_files:
         copyfile(get_tmp_path(file), "./{0}".format(file))
 
-def last_value_to_str(last_value : tuple) -> str:
+
+def last_value_to_str(last_value: tuple) -> str:
     return "{0} - {1}".format(last_value[0], last_value[1])
+
 
 def do_calc_temp() -> str:
     df_general, df_ga, df_sp = get_data(URL_FILE_CSV, get_tmp_path(FILE_CSV))
     df_ca = load_ca_population_from_gs(BUCKET, FILE_CSV_CA_POPULATION)
     (df_hospitalized_by_population,
      hospitalized_by_population_sp) = get_hospitalized_by_population(df_general, df_ca)
-    max_date= df_general["Date"].max()
+    max_date = df_general["Date"].max()
 
     last_value_ga = df_ga[df_ga["Date"] == max_date][SZ_COLUMN_HOSPITALIZED].values[0]
     last_value_sp = df_sp[df_sp["Date"] == max_date][SZ_COLUMN_HOSPITALIZED].values[0]
-
-
 
     print(last_value_ga)
 
     plot(df_ga["Date"],
          df_ga[SZ_COLUMN_HOSPITALIZED],
          title="Accumulated Hospitalized Galician From {0} to {1}. Last {2} ".format(
-                                    df_general["Date"].min().date(),
-                                    df_general["Date"].max().date(),
-                                    last_value_ga),
+             df_general["Date"].min().date(),
+             df_general["Date"].max().date(),
+             last_value_ga),
          file_to_save=get_tmp_path(FILE_HOSPITALIZED_GA))
     plot(df_sp["Date"],
          df_sp[SZ_COLUMN_HOSPITALIZED],
          title="Accumulated Hospitalized Spain From {0} to {1}. Last {2}".format(df_general["Date"].min().date(),
-                                    df_general["Date"].max().date(),
-                                    last_value_sp),
+                                                                                 df_general["Date"].max().date(),
+                                                                                 last_value_sp),
          file_to_save=get_tmp_path(FILE_HOSPITALIZED_SP))
-    diff_sp_day =  get_diff_hospitalized_by_day(df_sp)
+    diff_sp_day = get_diff_hospitalized_by_day(df_sp, filter=True)
     plot(df_sp["Date"],
          diff_sp_day,
          title="Daily hospitalized by covid19 Spain.Last  {0}".format(diff_sp_day.iloc[-1]),

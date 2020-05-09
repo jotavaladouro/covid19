@@ -46,7 +46,7 @@ SPECIAL_DATES = [{"date": dt.datetime(2020, 3, 14), "label": 'Soft Confinement',
                  {"date": dt.datetime(2020, 4, 26), "label": 'Child walk', "color": "blue"},
                  {"date": dt.datetime(2020, 5, 2),  "label": 'Walk and sport', "color": "green"}]
 CA_REMOVE = ["ML", "CE"]
-DATA_REMOVE = [{"CA": "MD", "DATE": "2020-04-26"}]
+DATA_REMOVE_IN_DIFF = ["2020-04-26","2020-4-11"]
 CA_SPECIAL_CODE = [{"NAME": "Madrid", "CODE": "MD"},
                    {"NAME": "Cataluña", "CODE": "CT"},
                    {"NAME": "Rioja", "CODE": "RI"},
@@ -113,13 +113,13 @@ def load_ca_population_from_gs(bucket_name: str, file: str) -> pd.DataFrame:
 
 
 def get_diff_hospitalized_by_day(df: pd.DataFrame,
-                                 filter: bool = False) -> List:
+                                 filter: bool = False) -> pd.DataFrame:
     lst = df[SZ_COLUMN_HOSPITALIZED] - df[SZ_COLUMN_HOSPITALIZED].shift(1)
-    if filter:
-        wrong_values = lst[lst > 20000].values
-        if len(wrong_values) > 0:
-            lst = lst.replace(wrong_values, method='ffill')
-    return lst
+    pd_diff = pd.DataFrame()
+    pd_diff["Date"] = df["Date"]
+    pd_diff["Diff"] = lst;
+    pd_diff = pd_diff[~(pd_diff["Date"].isin(DATA_REMOVE_IN_DIFF))]
+    return pd_diff
 
 
 def get_hospitalized_by_population(df: pd.DataFrame, df_ca: pd.DataFrame) -> (pd.DataFrame,
@@ -220,13 +220,14 @@ def plot_by_ca(df: pd.DataFrame,
         column = math.floor(index / n_columns)
         row = index - column * n_columns
         df_ca = df[df[SZ_COLUMN_CA] == ca]
-        if plot_diff:
-            values = get_diff_hospitalized_by_day(df_ca)
-        else:
-            values = df_ca[SZ_COLUMN_HOSPITALIZED]
         plot_special_dates(ax[column, row], SPECIAL_DATES)
         ax[column, row].set_title(ca_get_name(ca)[:15])
-        ax[column, row].plot(df_ca["Date"], values)
+        if plot_diff:
+            pd_diff = get_diff_hospitalized_by_day(df_ca)
+            ax[column, row].plot(pd_diff["Date"], pd_diff["Diff"])
+
+        else:
+            ax[column, row].plot(df_ca["Date"], df_ca[SZ_COLUMN_HOSPITALIZED])
     plt.subplots_adjust(hspace=0.5)
     fig.autofmt_xdate()
     if title is not None:
@@ -337,13 +338,13 @@ def do_calc_temp() -> str:
                                                                                  last_value_sp),
          file_to_save=get_tmp_path(FILE_HOSPITALIZED_SP))
     diff_sp_day = get_diff_hospitalized_by_day(df_sp, filter=True)
-    plot(df_sp["Date"],
-         diff_sp_day,
+    plot(diff_sp_day["Date"],
+         diff_sp_day["Diff"],
          title="Daily hospitalized by covid19 Spain.Last  {0}".format(diff_sp_day.iloc[-1]),
          file_to_save=get_tmp_path(FILE_VARIATION_SP))
     diff_ga_day = get_diff_hospitalized_by_day(df_ga)
-    plot(df_ga["Date"],
-         diff_ga_day,
+    plot(diff_ga_day["Date"],
+         diff_ga_day["Diff"],
          title="Daily hospitalized by covid19 Galician.Last  {0}".format(diff_ga_day.iloc[-1]),
          file_to_save=get_tmp_path(FILE_VARIATION_GA))
     plot_by_ca(df_general,

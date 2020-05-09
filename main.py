@@ -340,12 +340,12 @@ def do_calc_temp() -> str:
     diff_sp_day = get_diff_hospitalized_by_day(df_sp, filter=True)
     plot(diff_sp_day["Date"],
          diff_sp_day["Diff"],
-         title="Daily hospitalized by covid19 Spain.Last  {0}".format(diff_sp_day.iloc[-1]),
+         title="Daily hospitalized by covid19 Spain.Last  {0}".format(diff_sp_day.iloc[-1]["Diff"]),
          file_to_save=get_tmp_path(FILE_VARIATION_SP))
     diff_ga_day = get_diff_hospitalized_by_day(df_ga)
     plot(diff_ga_day["Date"],
          diff_ga_day["Diff"],
-         title="Daily hospitalized by covid19 Galician.Last  {0}".format(diff_ga_day.iloc[-1]),
+         title="Daily hospitalized by covid19 Galician.Last  {0}".format(diff_ga_day.iloc[-1]["Diff"]),
          file_to_save=get_tmp_path(FILE_VARIATION_GA))
     plot_by_ca(df_general,
                plot_diff=True,

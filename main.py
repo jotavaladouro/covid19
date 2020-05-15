@@ -10,6 +10,7 @@ import argparse
 from covid19_definitions import *
 from typing import Optional
 import datetime as dt
+import special_dates
 
 FILE_CSV = "serie_historica_acumulados.csv"
 FILE_CSV_CA_POPULATION = "PopulationCA.csv"
@@ -40,12 +41,7 @@ FILES_COPY = [FILE_CSV,
               FILE_HOSPITALIZED_BY_POPULATION]
 
 
-SPECIAL_DATES = [{"date": dt.datetime(2020, 3, 14), "label": 'Soft Confinement', "color": "orange"},
-                 {"date": dt.datetime(2020, 3, 30), "label": 'Hard Confinement', "color": "r"},
-                 {"date": dt.datetime(2020, 4, 13), "label": 'Soft Confinement', "color": "orange"},
-                 {"date": dt.datetime(2020, 4, 26), "label": 'Child walk', "color": "blue"},
-                 {"date": dt.datetime(2020, 5, 2),  "label": 'Walk and sport', "color": "green"},
-                 {"date": dt.datetime(2020, 5, 10),  "label": 'Phase 1', "color": "green"}]
+
 CA_REMOVE = ["ML", "CE"]
 DATA_REMOVE_IN_DIFF = ["2020-04-26","2020-4-11"]
 CA_SPECIAL_CODE = [{"NAME": "Madrid", "CODE": "MD"},
@@ -183,7 +179,7 @@ def plot(dates: List,
     ax.set_title(title)
     ax.plot(dates, value)
     fig.autofmt_xdate()
-    plot_special_dates(ax, SPECIAL_DATES)
+    plot_special_dates(ax, special_dates.SPECIAL_DATES)
     plt.legend()
     if file_to_save is not None:
         fig.savefig(file_to_save)
@@ -221,7 +217,7 @@ def plot_by_ca(df: pd.DataFrame,
         column = math.floor(index / n_columns)
         row = index - column * n_columns
         df_ca = df[df[SZ_COLUMN_CA] == ca]
-        plot_special_dates(ax[column, row], SPECIAL_DATES)
+        plot_special_dates(ax[column, row], special_dates.SPECIAL_DATES)
         ax[column, row].set_title(ca_get_name(ca)[:15])
         if plot_diff:
             pd_diff = get_diff_hospitalized_by_day(df_ca)
